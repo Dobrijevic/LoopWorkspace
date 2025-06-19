@@ -1,10 +1,13 @@
-GITHUB_REPOSITORY_OWNER ||= ENV["GITHUB_REPOSITORY_OWNER"]
-GH_PAT = ENV["GH_PAT"]
-
-git_url("https://#{GH_PAT}@github.com/#{GITHUB_REPOSITORY_OWNER}/Match-Secrets.git")
+git_url("https://#{ENV['GH_PAT']}@github.com/Dobrijevic/Match-Secrets.git")
 
 storage_mode("git")
 type("appstore")
 
-# 🔽 Add this line with your actual app identifier
-app_identifier("com.your.bundle.id") # Replace this
+app_identifier([
+  "com.5JJ7VJ392Q.bundleid", # <-- update this with your real bundle ID
+  "com.5JJ7VJ392Q.bundleid.LoopWidgetExtension",
+  "com.5JJ7VJ392Q.bundleid.LoopWatch",
+  "com.5JJ7VJ392Q.bundleid.LoopWatch.watchkitextension",
+  "com.5JJ7VJ392Q.bundleid.Loop-Intent-Extension",
+  "com.5JJ7VJ392Q.bundleid.statuswidget"
+])
