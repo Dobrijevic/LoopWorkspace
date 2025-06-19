@@ -1,5 +1,3 @@
-# Fastfile with identifiers, certificate renewal, and nuking support
-
 default_platform(:ios)
 
 TEAMID = ENV["TEAMID"]
@@ -14,6 +12,7 @@ DEVICE_ID = ENV["DEVICE_ID"]
 ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
 
 platform :ios do
+
   desc "Provision Identifiers and Certificates"
   lane :identifiers do
     setup_ci if ENV['CI']
@@ -86,6 +85,7 @@ platform :ios do
     )
 
     new_certificate_needed = false
+
     certificates = Spaceship::ConnectAPI::Certificate.all
     distribution_certs = certificates.select { |cert| cert.certificate_type == "DISTRIBUTION" }
 
@@ -105,13 +105,16 @@ platform :ios do
       end
     end
 
-    file_path = File.expand_path("new_certificate_needed.txt", Dir.pwd)
+    file_path = File.expand_path('fastlane/new_certificate_needed.txt')
     File.write(file_path, new_certificate_needed ? 'true' : 'false')
-    puts "\n📄 Certificate status written to: #{file_path}"
-    puts "📝 Contents: #{File.read(file_path)}"
+
+    puts ""
+    puts "Absolute path of new_certificate_needed.txt: #{file_path}"
+    new_certificate_needed_content = File.read(file_path)
+    puts "Certificate creation or renewal needed: #{new_certificate_needed_content}"
   end
 
-  desc "Nuke Certs"
+  desc "Nuke old certificates and provisioning profiles"
   lane :nuke_certs do
     setup_ci if ENV['CI']
     ENV["MATCH_READONLY"] = false.to_s
@@ -128,6 +131,8 @@ platform :ios do
       skip_confirmation: true,
       git_basic_authorization: Base64.strict_encode64("#{GITHUB_REPOSITORY_OWNER}:#{GH_PAT}")
     )
+  end
+
   desc "Provision Distribution Certificates and Profiles"
   lane :certs do
     setup_ci if ENV['CI']
@@ -154,5 +159,5 @@ platform :ios do
       ]
     )
   end
-  end
+
 end
