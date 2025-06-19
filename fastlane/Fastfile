@@ -11,6 +11,7 @@ FASTLANE_ISSUER_ID = ENV["FASTLANE_ISSUER_ID"]
 FASTLANE_KEY = ENV["FASTLANE_KEY"]
 DEVICE_NAME = ENV["DEVICE_NAME"]
 DEVICE_ID = ENV["DEVICE_ID"]
+FASTLANE_USER = ENV["FASTLANE_USER"]
 ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
 
 platform :ios do
@@ -120,21 +121,26 @@ platform :ios do
     match(
       type: "appstore",
       readonly: false,
-      force_for_new_devices: true
+      force_for_new_devices: true,
+      username: FASTLANE_USER
     )
   end
 
   desc "Nuke and recreate distribution certificates and provisioning profiles"
   lane :nuke_certs do
     setup_ci if ENV['CI']
-    match(type: "appstore", readonly: false, force: true, nuke: true)
-    match(type: "appstore", readonly: false)
+    match(type: "appstore", readonly: false, force: true, nuke: true, username: FASTLANE_USER)
+    match(type: "appstore", readonly: false, username: FASTLANE_USER)
   end
 
   desc "Build the Loop app"
   lane :build_loop do
     setup_ci if ENV['CI']
-    match(type: "appstore", readonly: false)
+    match(
+      type: "appstore",
+      readonly: false,
+      username: FASTLANE_USER
+    )
     build_app(
       scheme: "Loop",
       export_method: "app-store",
