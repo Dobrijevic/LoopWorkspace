@@ -105,7 +105,7 @@ platform :ios do
       end
     end
 
-    file_path = File.expand_path('fastlane/new_certificate_needed.txt')
+    file_path = File.expand_path('../new_certificate_needed.txt', __FILE__)
     File.write(file_path, new_certificate_needed ? 'true' : 'false')
 
     puts ""
