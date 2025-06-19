@@ -1,10 +1,9 @@
-
+# Use the GH_PAT environment variable for authentication
 GITHUB_REPOSITORY_OWNER ||= ENV["GITHUB_REPOSITORY_OWNER"]
+GH_PAT = ENV["GH_PAT"]
 
-git_url("https://github.com/#{GITHUB_REPOSITORY_OWNER}/Match-Secrets.git")
+git_url("https://#{GH_PAT}@github.com/#{GITHUB_REPOSITORY_OWNER}/Match-Secrets.git")
 
 storage_mode("git")
 
 type("appstore")
-
-# The docs are available on https://docs.fastlane.tools/actions/match
