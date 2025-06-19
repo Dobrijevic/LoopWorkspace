@@ -1,13 +1,15 @@
-git_url("https://#{ENV['GH_PAT']}@github.com/Dobrijevic/Match-Secrets.git")
+GITHUB_REPOSITORY_OWNER ||= ENV["GITHUB_REPOSITORY_OWNER"]
+
+git_url("https://#{ENV['GH_PAT']}@github.com/#{GITHUB_REPOSITORY_OWNER}/Match-Secrets.git")
 
 storage_mode("git")
 type("appstore")
 
 app_identifier([
-  "com.5JJ7VJ392Q.bundleid", # <-- update this with your real bundle ID
-  "com.5JJ7VJ392Q.bundleid.LoopWidgetExtension",
-  "com.5JJ7VJ392Q.bundleid.LoopWatch",
-  "com.5JJ7VJ392Q.bundleid.LoopWatch.watchkitextension",
-  "com.5JJ7VJ392Q.bundleid.Loop-Intent-Extension",
-  "com.5JJ7VJ392Q.bundleid.statuswidget"
+  "com.milica.loopkit.Loop",
+  "com.milica.loopkit.Loop.LoopWatch",
+  "com.milica.loopkit.Loop.LoopWidgetExtension",
+  "com.milica.loopkit.Loop.LoopWatch.watchkitextension",
+  "com.milica.loopkit.Loop.Loop-Intent-Extension",
+  "com.milica.loopkit.Loop.statuswidget"
 ])
