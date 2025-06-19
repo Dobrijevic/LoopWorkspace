@@ -6,10 +6,10 @@ storage_mode("git")
 type("appstore")
 
 app_identifier([
-  "com.milica.loopkit.Loop",
-  "com.milica.loopkit.Loop.LoopWatch",
-  "com.milica.loopkit.Loop.LoopWidgetExtension",
-  "com.milica.loopkit.Loop.LoopWatch.watchkitextension",
-  "com.milica.loopkit.Loop.Loop-Intent-Extension",
-  "com.milica.loopkit.Loop.statuswidget"
+  "com.5JJ7VJ392Q.loopkit.Loop",
+  "com.5JJ7VJ392Q.loopkit.Loop.LoopWatch",
+  "com.5JJ7VJ392Q.loopkit.Loop.LoopWidgetExtension",
+  "com.5JJ7VJ392Q.loopkit.Loop.LoopWatch.watchkitextension",
+  "com.5JJ7VJ392Q.loopkit.Loop.Loop-Intent-Extension",
+  "com.5JJ7VJ392Q.loopkit.Loop.statuswidget"
 ])
