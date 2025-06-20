@@ -11,7 +11,7 @@ FASTLANE_ISSUER_ID = ENV["FASTLANE_ISSUER_ID"]
 FASTLANE_KEY = ENV["FASTLANE_KEY"]
 DEVICE_NAME = ENV["DEVICE_NAME"]
 DEVICE_ID = ENV["DEVICE_ID"]
-FASTLANE_USER = ENV["FASTLANE_USER"] || raise("❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret.")
+FASTLANE_USER = ENV["FASTLANE_USER"]
 ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
 
 platform :ios do
@@ -117,6 +117,8 @@ platform :ios do
 
   desc "Create or renew provisioning profiles and distribution certificate"
   lane :certs do
+    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if FASTLANE_USER.nil?
+
     setup_ci if ENV['CI']
     match(
       type: "appstore",
@@ -128,6 +130,8 @@ platform :ios do
 
   desc "Nuke and recreate distribution certificates and provisioning profiles"
   lane :nuke_certs do
+    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if FASTLANE_USER.nil?
+
     setup_ci if ENV['CI']
     match(type: "appstore", readonly: false, force: true, nuke: true, username: FASTLANE_USER)
     match(type: "appstore", readonly: false, username: FASTLANE_USER)
@@ -135,6 +139,8 @@ platform :ios do
 
   desc "Build the Loop app"
   lane :build_loop do
+    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if FASTLANE_USER.nil?
+
     setup_ci if ENV['CI']
     match(
       type: "appstore",
