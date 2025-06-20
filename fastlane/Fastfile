@@ -2,23 +2,24 @@
 
 default_platform(:ios)
 
-TEAMID = ENV["TEAMID"]
-GH_PAT = ENV["GH_PAT"]
-GITHUB_WORKSPACE = ENV["GITHUB_WORKSPACE"]
-GITHUB_REPOSITORY_OWNER = ENV["GITHUB_REPOSITORY_OWNER"]
-FASTLANE_KEY_ID = ENV["FASTLANE_KEY_ID"]
-FASTLANE_ISSUER_ID = ENV["FASTLANE_ISSUER_ID"]
-FASTLANE_KEY = ENV["FASTLANE_KEY"]
-DEVICE_NAME = ENV["DEVICE_NAME"]
-DEVICE_ID = ENV["DEVICE_ID"]
-FASTLANE_USER = ENV["FASTLANE_USER"]
+# Load required environment variables with fallbacks
+TEAMID = ENV["TEAMID"] || raise("❌ TEAMID is not set.")
+GH_PAT = ENV["GH_PAT"] || raise("❌ GH_PAT is not set.")
+GITHUB_WORKSPACE = ENV["GITHUB_WORKSPACE"] || ""
+GITHUB_REPOSITORY_OWNER = ENV["GITHUB_REPOSITORY_OWNER"] || ""
+FASTLANE_KEY_ID = ENV["FASTLANE_KEY_ID"] || raise("❌ FASTLANE_KEY_ID is not set.")
+FASTLANE_ISSUER_ID = ENV["FASTLANE_ISSUER_ID"] || raise("❌ FASTLANE_ISSUER_ID is not set.")
+FASTLANE_KEY = ENV["FASTLANE_KEY"] || raise("❌ FASTLANE_KEY is not set.")
+DEVICE_NAME = ENV["DEVICE_NAME"] || ""
+DEVICE_ID = ENV["DEVICE_ID"] || ""
+FASTLANE_USER = ENV["FASTLANE_USER"] || raise("❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret.")
 ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
 
 platform :ios do
   desc "Provision Identifiers and Certificates"
   lane :identifiers do
     setup_ci if ENV['CI']
-    ENV["MATCH_READONLY"] = false.to_s
+    ENV["MATCH_READONLY"] = "false"
 
     app_store_connect_api_key(
       key_id: FASTLANE_KEY_ID,
@@ -41,7 +42,7 @@ platform :ios do
           bundle_id.create_capability(capability_type: capability)
           puts "✅ Enabled capability #{capability} for #{identifier}"
         rescue => e
-          puts "❌ Failed to enable capability #{capability} for #{identifier}: #{e.message}"
+          puts "⚠️ Could not enable capability #{capability}: #{e.message}"
         end
       end
     end
@@ -78,7 +79,7 @@ platform :ios do
   desc "Check Certificates and Trigger Workflow for Expired or Missing Certificates"
   lane :check_and_renew_certificates do
     setup_ci if ENV['CI']
-    ENV["MATCH_READONLY"] = false.to_s
+    ENV["MATCH_READONLY"] = "false"
 
     app_store_connect_api_key(
       key_id: FASTLANE_KEY_ID,
@@ -87,7 +88,6 @@ platform :ios do
     )
 
     new_certificate_needed = false
-
     certificates = Spaceship::ConnectAPI::Certificate.all
     distribution_certs = certificates.select { |cert| cert.certificate_type == "DISTRIBUTION" }
 
@@ -97,28 +97,18 @@ platform :ios do
     else
       distribution_certs.each do |cert|
         expiration_date = Time.parse(cert.expiration_date)
-        puts "Current Distribution Certificate: #{cert.id}, Expiration date: #{expiration_date}"
-        if expiration_date < Time.now
-          puts "Distribution Certificate #{cert.id} is expired!"
-          new_certificate_needed = true
-        else
-          puts "Distribution certificate #{cert.id} is valid. No action required."
-        end
+        puts "📄 Cert: #{cert.id}, Expires: #{expiration_date}"
+        new_certificate_needed ||= expiration_date < Time.now
       end
     end
 
     Dir.mkdir("fastlane") unless Dir.exist?("fastlane")
-    file_path = File.expand_path("fastlane/new_certificate_needed.txt")
-    File.write(file_path, new_certificate_needed ? 'true' : 'false')
-
-    puts ""
-    puts "Wrote to new_certificate_needed.txt: #{new_certificate_needed}"
+    File.write("fastlane/new_certificate_needed.txt", new_certificate_needed.to_s)
+    puts "📝 new_certificate_needed.txt written: #{new_certificate_needed}"
   end
 
   desc "Create or renew provisioning profiles and distribution certificate"
   lane :certs do
-    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if FASTLANE_USER.nil?
-
     setup_ci if ENV['CI']
     match(
       type: "appstore",
@@ -130,8 +120,6 @@ platform :ios do
 
   desc "Nuke and recreate distribution certificates and provisioning profiles"
   lane :nuke_certs do
-    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if FASTLANE_USER.nil?
-
     setup_ci if ENV['CI']
     match(type: "appstore", readonly: false, force: true, nuke: true, username: FASTLANE_USER)
     match(type: "appstore", readonly: false, username: FASTLANE_USER)
@@ -139,8 +127,6 @@ platform :ios do
 
   desc "Build the Loop app"
   lane :build_loop do
-    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if FASTLANE_USER.nil?
-
     setup_ci if ENV['CI']
     match(
       type: "appstore",
