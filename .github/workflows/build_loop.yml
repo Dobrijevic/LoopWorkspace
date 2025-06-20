@@ -2,6 +2,11 @@ name: 4. Build Loop
 run-name: Build Loop (${{ github.ref_name }})
 on:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: "Fastlane lane to run (build_loop or release)"
+        required: true
+        default: build_loop
 
   ## Remove the "#" sign from the beginning of the line below to get automated builds on push (code changes in your repository)
   #push:
@@ -305,7 +310,7 @@ jobs:
 
       # Build signed Loop IPA file
       - name: Fastlane Build & Archive
-        run: bundle exec fastlane build_loop
+        run: bundle exec fastlane ${{ github.event.inputs.lane }}
         env:
           TEAMID: ${{ secrets.TEAMID }}
           GH_PAT: ${{ secrets.GH_PAT }}
@@ -316,8 +321,9 @@ jobs:
 
       # Upload to TestFlight
       - name: Fastlane upload to TestFlight
-        run: bundle exec fastlane release
-        env:
+  if: github.event.inputs.lane == 'release'
+  run: bundle exec fastlane release
+  env:
           TEAMID: ${{ secrets.TEAMID }}
           GH_PAT: ${{ secrets.GH_PAT }}
           FASTLANE_KEY_ID: ${{ secrets.FASTLANE_KEY_ID }}
