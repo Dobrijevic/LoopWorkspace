@@ -1,5 +1,3 @@
-# Fastfile with full Loop automation
-
 default_platform(:ios)
 
 # Load required environment variables with fallbacks
@@ -12,7 +10,6 @@ FASTLANE_ISSUER_ID = ENV["FASTLANE_ISSUER_ID"] || raise("❌ FASTLANE_ISSUER_ID 
 FASTLANE_KEY = ENV["FASTLANE_KEY"] || raise("❌ FASTLANE_KEY is not set.")
 DEVICE_NAME = ENV["DEVICE_NAME"] || ""
 DEVICE_ID = ENV["DEVICE_ID"] || ""
-FASTLANE_USER = ENV["FASTLANE_USER"] || raise("❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret.")
 ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
 
 platform :ios do
@@ -109,29 +106,35 @@ platform :ios do
 
   desc "Create or renew provisioning profiles and distribution certificate"
   lane :certs do
+    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if ENV["FASTLANE_USER"].to_s.empty?
+
     setup_ci if ENV['CI']
     match(
       type: "appstore",
       readonly: false,
       force_for_new_devices: true,
-      username: FASTLANE_USER
+      username: ENV["FASTLANE_USER"]
     )
   end
 
   desc "Nuke and recreate distribution certificates and provisioning profiles"
   lane :nuke_certs do
+    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if ENV["FASTLANE_USER"].to_s.empty?
+
     setup_ci if ENV['CI']
-    match(type: "appstore", readonly: false, force: true, nuke: true, username: FASTLANE_USER)
-    match(type: "appstore", readonly: false, username: FASTLANE_USER)
+    match(type: "appstore", readonly: false, force: true, nuke: true, username: ENV["FASTLANE_USER"])
+    match(type: "appstore", readonly: false, username: ENV["FASTLANE_USER"])
   end
 
   desc "Build the Loop app"
   lane :build_loop do
+    raise "❌ FASTLANE_USER environment variable is not set. Please add it as a GitHub secret." if ENV["FASTLANE_USER"].to_s.empty?
+
     setup_ci if ENV['CI']
     match(
       type: "appstore",
       readonly: false,
-      username: FASTLANE_USER
+      username: ENV["FASTLANE_USER"]
     )
     build_app(
       scheme: "Loop",
