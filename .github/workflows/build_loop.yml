@@ -2,6 +2,11 @@ name: 4. Build Loop
 run-name: Build Loop (${{ github.ref_name }})
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Upload to TestFlight after build (true or false)'
+        required: false
+        default: 'false'
   schedule:
     - cron: "0 9 * * 3" # Every Wednesday 09:00 UTC
     - cron: "0 7 1 * *" # First of each month at 07:00 UTC
