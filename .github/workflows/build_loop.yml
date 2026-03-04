@@ -172,11 +172,15 @@ jobs:
             git apply ./patches/* --allow-empty -v --whitespace=fix
           fi
 
-      # ✅ Correct way to add Profiles Save/Load using Loop & Learn script
-      - name: Apply CustomizationSelect (Profiles Save/Load)
+      # ✅ Apply Loop & Learn customizations (Profiles + DIA + Insulin Models + Dynamic ISF)
+      - name: Apply CustomizationSelect (L&L features)
         run: |
           set -euo pipefail
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" profiles
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" \
+            profiles \
+            editable-dia \
+            insulin-models \
+            dynamic-isf
 
       - name: Patch Match Tables
         run: |
