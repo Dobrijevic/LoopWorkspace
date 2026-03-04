@@ -26,19 +26,18 @@ jobs:
 
     # Check GH_PAT, sync repository, check day in month
     steps:
-
       - name: Access
         id: workflow-permission
         run: |
           # Validate Access Token
-          
+
           # Ensure that gh exit codes are handled when output is piped.
           set -o pipefail
-          
+
           # Define patterns to validate the access token (GH_PAT) and distinguish between classic and fine-grained tokens.
           GH_PAT_CLASSIC_PATTERN='^ghp_[a-zA-Z0-9]{36}$'
           GH_PAT_FINE_GRAINED_PATTERN='^github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}$'
-          
+
           # Validate Access Token (GH_PAT)
           if [ -z "$GH_PAT" ]; then
             failed=true
@@ -53,7 +52,7 @@ jobs:
               unknown_format=true
               echo "The GH_PAT secret does not have a known token format."
             fi
-            
+
             # Attempt to capture the x-oauth-scopes scopes of the token.
             if ! scopes=$(curl -sS -f -I -H "Authorization: token $GH_PAT" https://api.github.com | { grep -i '^x-oauth-scopes:' || true; } | cut -d ' ' -f2- | tr -d '\r'); then
               failed=true
@@ -80,7 +79,7 @@ jobs:
               echo "has_permission=true" >> $GITHUB_OUTPUT
             fi
           fi
-          
+
           # Exit unsuccessfully if secret validation failed.
           if [ $failed ]; then
             exit 2
@@ -152,14 +151,14 @@ jobs:
   # creates new certs if the repository variable ENABLE_NUKE_CERTS == 'true'
   # only run if a build is planned
   check_certs:
-      needs: [check_status]
-      name: Check certificates
-      uses: ./.github/workflows/create_certs.yml
-      secrets: inherit
-      if: |
-        github.event_name == 'workflow_dispatch' ||
-          (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-          (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+    needs: [check_status]
+    name: Check certificates
+    uses: ./.github/workflows/create_certs.yml
+    secrets: inherit
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+        (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
+        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
 
   # Builds Loop
   build:
@@ -168,8 +167,7 @@ jobs:
     runs-on: macos-15
     permissions:
       contents: write
-    if:
-      | # builds with manual start; if scheduled: once a month or when new commits are found
+    if: |
       github.event_name == 'workflow_dispatch' ||
         (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
@@ -187,11 +185,10 @@ jobs:
       # Customize Loop: Download and apply patches
       - name: Customize Loop
         run: |
-
           # LoopWorkspace patches
           # -applies any patches located in the LoopWorkspace/patches/ directory
           if $(ls ./patches/* &> /dev/null); then
-          git apply ./patches/* --allow-empty -v --whitespace=fix
+            git apply ./patches/* --allow-empty -v --whitespace=fix
           fi
 
           # Submodule Loop patches:
@@ -200,25 +197,17 @@ jobs:
           #curl https://github.com/loopnlearn/Loop/commit/d206432b024279ef710df462b20bd464cd9682d4.patch | git apply --directory=Loop -v --whitespace=fix
 
           # Submodule LoopKit patches:
-          # General template for customizing submodule LoopKit 
+          # General template for customizing submodule LoopKit
           # Copy url from a GitHub commit or pull request and insert below, and remove the "#" sign from the beginning of the line to activate:
           #curl url_to_github_commit.patch | git apply --directory=LoopKit -v --whitespace=fix
 
-          # Submodule xxxxx patches:
-
-          # Add patches for customization of additional submodules by following the templates above, 
-          # and make sure to specify the submodule by setting "--directory=(submodule_name)".
-          # Several patches may be added per submodule.
-          # Adding comments (#) may be useful to easily tell the individual patches apart.
-
-      # ✅ Apply LoopWorkspace customizations (Profiles Save/Load)
-      - name: Apply Customizations
+      # ✅ Apply Loop and Learn prepared customizations (Profiles Save/Load)
+      # NOTE: This uses Loop and Learn's CustomizationSelect script (not LoopKit's).
+      - name: Apply L&L Customizations (Profiles)
+        env:
+          CUSTOMIZATION_SELECT: profiles
         run: |
-          CUSTOMIZATION_SELECT=" \
-          profiles \
-          "
-
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/LoopKit/LoopWorkspace/main/Scripts/customization_select.sh)"
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/dev/CustomizationSelect.sh)"
 
       # Patch Fastlane Match to not print tables
       - name: Patch Match Tables
