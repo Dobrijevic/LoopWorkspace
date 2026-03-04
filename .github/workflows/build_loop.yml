@@ -4,8 +4,6 @@ run-name: Build Loop (${{ github.ref_name }})
 on:
   workflow_dispatch:
   schedule:
-    # Check for updates every Sunday
-    #   Later logic builds if there are updates or if it is the 2nd Sunday of the month
     - cron: "33 7 * * 0" # Sunday at UTC 7:33
 
 env:
@@ -28,7 +26,6 @@ jobs:
       - name: Access
         id: workflow-permission
         run: |
-          # Validate Access Token
           set -o pipefail
 
           GH_PAT_CLASSIC_PATTERN='^ghp_[a-zA-Z0-9]{36}$'
@@ -48,33 +45,29 @@ jobs:
               echo "The GH_PAT secret does not have a known token format."
             fi
 
-            if ! scopes=$(curl -sS -f -I -H "Authorization: token $GH_PAT" https://api.github.com | { grep -i '^x-oauth-scopes:' || true; } | cut -d ' ' -f2- | tr -d '\r'); then
+            if ! scopes=$(curl -sS -f -I -H "Authorization: token $GH_PAT" https://api.github.com \
+              | { grep -i '^x-oauth-scopes:' || true; } | cut -d ' ' -f2- | tr -d '\r'); then
               failed=true
-              if [ $unknown_format ]; then
-                echo "::error::Unable to connect to GitHub using the GH_PAT secret. Verify that it is set correctly (including the 'ghp_' or 'github_pat_' prefix) and try again."
+              if [ "${unknown_format:-}" ]; then
+                echo "::error::Unable to connect to GitHub using GH_PAT. Verify it includes 'ghp_' or 'github_pat_' and try again."
               else
-                echo "::error::Unable to connect to GitHub using the GH_PAT secret. Verify that the token exists and has not expired at https://github.com/settings/tokens. If necessary, regenerate or create a new token (and update the secret), then try again."
+                echo "::error::Unable to connect to GitHub using GH_PAT. Verify it has not expired and has required scopes."
               fi
             elif [[ $scopes =~ workflow ]]; then
               echo "The GH_PAT secret has repo and workflow permissions."
               echo "has_permission=true" >> $GITHUB_OUTPUT
             elif [[ $scopes =~ repo ]]; then
               echo "The GH_PAT secret has repo (but not workflow) permissions."
-            elif [ $provides_scopes ]; then
+            elif [ "${provides_scopes:-}" ]; then
               failed=true
-              if [ -z "$scopes" ]; then
-                echo "The GH_PAT secret is valid and can be used to connect to GitHub, but it does not provide any permission scopes."
-              else
-                echo "The GH_PAT secret is valid and can be used to connect to GitHub, but it only provides the following permission scopes: $scopes"
-              fi
-              echo "::error::The GH_PAT secret is lacking at least the 'repo' permission scope required. Update the token permissions (include 'repo' and 'workflow') and try again."
+              echo "::error::GH_PAT is lacking required scopes. Ensure at least 'repo' (and ideally 'workflow')."
             else
-              echo "The GH_PAT secret is valid but does not provide inspectable scopes. Assuming required permissions are present."
+              echo "Token scopes not inspectable. Assuming required permissions are present."
               echo "has_permission=true" >> $GITHUB_OUTPUT
             fi
           fi
 
-          if [ $failed ]; then
+          if [ "${failed:-}" ]; then
             exit 2
           fi
 
@@ -89,7 +82,8 @@ jobs:
       - name: Sync upstream changes
         if: |
           steps.workflow-permission.outputs.has_permission == 'true' &&
-          vars.SCHEDULED_SYNC != 'false' && github.repository_owner != 'LoopKit'
+          vars.SCHEDULED_SYNC != 'false' &&
+          github.repository_owner != 'LoopKit'
         id: sync
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
         with:
@@ -102,30 +96,18 @@ jobs:
       - name: New commits found
         if: |
           steps.workflow-permission.outputs.has_permission == 'true' &&
-          vars.SCHEDULED_SYNC != 'false' && steps.sync.outputs.has_new_commits == 'true'
+          vars.SCHEDULED_SYNC != 'false' &&
+          steps.sync.outputs.has_new_commits == 'true'
         run: echo "New commits were found to sync."
 
       - name: No new commits
         if: |
           steps.workflow-permission.outputs.has_permission == 'true' &&
-          vars.SCHEDULED_SYNC != 'false' && steps.sync.outputs.has_new_commits == 'false'
+          vars.SCHEDULED_SYNC != 'false' &&
+          steps.sync.outputs.has_new_commits == 'false'
         run: echo "There were no new commits."
 
-      - name: Show value of 'has_new_commits'
-        if: steps.workflow-permission.outputs.has_permission == 'true' && vars.SCHEDULED_SYNC != 'false'
-        run: |
-          echo ${{ steps.sync.outputs.has_new_commits }}
-          echo "NEW_COMMITS=${{ steps.sync.outputs.has_new_commits }}" >> $GITHUB_OUTPUT
-
-      - name: Show scheduled build configuration message
-        if: steps.workflow-permission.outputs.has_permission != 'true'
-        run: |
-          echo "### :calendar: Scheduled Sync and Build Disabled :mobile_phone_off:" >> $GITHUB_STEP_SUMMARY
-          echo "You have not yet configured the scheduled sync and build for Loop's browser build." >> $GITHUB_STEP_SUMMARY
-          echo "Synchronizing your fork of <code>LoopWorkspace</code> with the upstream repository <code>LoopKit/LoopWorkspace</code> will be skipped." >> $GITHUB_STEP_SUMMARY
-          echo "If you want to enable automatic builds and updates for your Loop, please follow the instructions under <code>LoopWorkspace/fastlane/testflight.md</code>." >> $GITHUB_STEP_SUMMARY
-
-      - name: Check if this is the second time this day-of-week happens this month
+      - name: Check if this is the second Sunday of the month
         id: date-check
         run: |
           WEEK_OF_MONTH=$(( ($(date +%-d) - 1) / 7 + 1 ))
@@ -142,8 +124,8 @@ jobs:
     secrets: inherit
     if: |
       github.event_name == 'workflow_dispatch' ||
-        (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+      (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
+      (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true')
 
   build:
     name: Build
@@ -153,11 +135,12 @@ jobs:
       contents: write
     if: |
       github.event_name == 'workflow_dispatch' ||
-        (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+      (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
+      (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true')
+
     steps:
       - name: Select Xcode version
-        run: "sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer"
+        run: sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
 
       - name: Checkout Repo for building
         uses: actions/checkout@v4
@@ -166,29 +149,33 @@ jobs:
           submodules: recursive
           ref: ${{ env.TARGET_BRANCH }}
 
-      - name: Customize Loop (patches folder)
-        run: |
-          if $(ls ./patches/* &> /dev/null); then
-            git apply ./patches/* --allow-empty -v --whitespace=fix
-          fi
-
-      # ✅ Apply Loop & Learn customizations (Profiles + DIA + Insulin Models + Dynamic ISF)
-      - name: Apply CustomizationSelect (L&L features)
+      - name: Customize Loop (apply local patches folder if present)
+        shell: bash
         run: |
           set -euo pipefail
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" \
-            profiles \
-            editable-dia \
-            insulin-models \
-            dynamic-isf
+          if ls ./patches/* >/dev/null 2>&1; then
+            git apply ./patches/* --allow-empty -v --whitespace=fix
+          else
+            echo "No patches found in ./patches"
+          fi
 
-      - name: Patch Match Tables
+      # ✅ Profiles Save & Load (Loop and Learn supported)
+      - name: Apply CustomizationSelect (Profiles Save/Load)
+        shell: bash
         run: |
-          TABLE_PRINTER_PATH=$(ruby -e 'puts Gem::Specification.find_by_name("fastlane").gem_dir')/match/lib/match/table_printer.rb
+          set -euo pipefail
+          echo "Running CustomizationSelect for: profiles"
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" profiles
+
+      - name: Patch Fastlane Match to not print tables
+        shell: bash
+        run: |
+          set -euo pipefail
+          TABLE_PRINTER_PATH="$(ruby -e 'puts Gem::Specification.find_by_name("fastlane").gem_dir')/match/lib/match/table_printer.rb"
           if [ -f "$TABLE_PRINTER_PATH" ]; then
             sed -i "" "/puts(Terminal::Table.new(params))/d" "$TABLE_PRINTER_PATH"
           else
-            echo "table_printer.rb not found"
+            echo "table_printer.rb not found at: $TABLE_PRINTER_PATH"
             exit 1
           fi
 
