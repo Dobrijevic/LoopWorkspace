@@ -211,6 +211,15 @@ jobs:
           # Several patches may be added per submodule.
           # Adding comments (#) may be useful to easily tell the individual patches apart.
 
+      # ✅ Apply LoopWorkspace customizations (Profiles Save/Load)
+      - name: Apply Customizations
+        run: |
+          CUSTOMIZATION_SELECT=" \
+          profiles \
+          "
+
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/LoopKit/LoopWorkspace/main/Scripts/customization_select.sh)"
+
       # Patch Fastlane Match to not print tables
       - name: Patch Match Tables
         run: |
