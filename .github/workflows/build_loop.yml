@@ -26,7 +26,6 @@ jobs:
 
     # Check GH_PAT, sync repository, check day in month
     steps:
-
       - name: Access
         id: workflow-permission
         run: |
@@ -152,14 +151,14 @@ jobs:
   # creates new certs if the repository variable ENABLE_NUKE_CERTS == 'true'
   # only run if a build is planned
   check_certs:
-      needs: [check_status]
-      name: Check certificates
-      uses: ./.github/workflows/create_certs.yml
-      secrets: inherit
-      if: |
-        github.event_name == 'workflow_dispatch' ||
-          (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-          (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+    needs: [check_status]
+    name: Check certificates
+    uses: ./.github/workflows/create_certs.yml
+    secrets: inherit
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+        (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
+        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
 
   # Builds Loop
   build:
@@ -168,8 +167,7 @@ jobs:
     runs-on: macos-15
     permissions:
       contents: write
-    if:
-      | # builds with manual start; if scheduled: once a month or when new commits are found
+    if: |
       github.event_name == 'workflow_dispatch' ||
         (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
@@ -187,11 +185,10 @@ jobs:
       # Customize Loop: Download and apply patches
       - name: Customize Loop
         run: |
-
           # LoopWorkspace patches
           # -applies any patches located in the LoopWorkspace/patches/ directory
           if $(ls ./patches/* &> /dev/null); then
-          git apply ./patches/* --allow-empty -v --whitespace=fix
+            git apply ./patches/* --allow-empty -v --whitespace=fix
           fi
 
           # Submodule Loop patches:
@@ -204,12 +201,12 @@ jobs:
           # Copy url from a GitHub commit or pull request and insert below, and remove the "#" sign from the beginning of the line to activate:
           #curl url_to_github_commit.patch | git apply --directory=LoopKit -v --whitespace=fix
 
-          # Submodule xxxxx patches:
-
-          # Add patches for customization of additional submodules by following the templates above, 
-          # and make sure to specify the submodule by setting "--directory=(submodule_name)".
-          # Several patches may be added per submodule.
-          # Adding comments (#) may be useful to easily tell the individual patches apart.
+      # ✅ Apply LoopWorkspace customizations (Profiles Save/Load)
+      - name: Apply Customizations (Profiles)
+        env:
+          CUSTOMIZATION_SELECT: profiles
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/LoopKit/LoopWorkspace/main/Scripts/customization_select.sh)"
 
       # Patch Fastlane Match to not print tables
       - name: Patch Match Tables
