@@ -166,40 +166,12 @@ jobs:
             echo "No patches found in ./patches"
           fi
 
-      # ✅ MUST-HAVE Customizations (fail build if these fail)
-      - name: Apply CustomizationSelect (Required)
+      - name: Apply CustomizationSelect (Profiles Save/Load)
         shell: bash
         run: |
           set -euo pipefail
-          echo "Running REQUIRED CustomizationSelect for: profiles basal_lock negative_insulin"
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" \
-            profiles \
-            basal_lock \
-            negative_insulin
-
-      # ✅ OPTIONAL extras (do NOT fail the build if one is unsupported)
-      - name: Apply CustomizationSelect (Optional Extras)
-        shell: bash
-        run: |
-          set -uo pipefail
-
-          run_optional () {
-            local opt="$1"
-            echo ""
-            echo "---- Trying OPTIONAL customization: ${opt} ----"
-            if /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" "${opt}"; then
-              echo "✅ Optional customization applied: ${opt}"
-            else
-              echo "⚠️ Optional customization FAILED (skipping): ${opt}"
-              echo "   This usually means '${opt}' isn't supported for your Loop version/branch."
-            fi
-          }
-
-          # Add/remove optional items here:
-          run_optional remote_window
-          run_optional future_carbs_4h
-          run_optional override_sens
-          run_optional now_line
+          echo "Running CustomizationSelect for: profiles"
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" profiles
 
       - name: Patch Fastlane Match to not print tables
         shell: bash
