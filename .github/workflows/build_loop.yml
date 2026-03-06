@@ -161,27 +161,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          # This applies any patch files placed in ./patches
-          # For DIA-related source edits, add the patch file to:
-          #   patches/
-          # Example:
-          #   patches/editable-dia.patch
-          #
-          # The workflow itself does NOT create editable DIA.
-          # It only applies your local source-code patch if one exists.
-
           if ls ./patches/* >/dev/null 2>&1; then
             git apply ./patches/* --allow-empty -v --whitespace=fix
           else
             echo "No patches found in ./patches"
           fi
 
-      - name: Apply CustomizationSelect (Profiles Save/Load)
+      - name: Apply CustomizationSelect (Profiles + useful extras)
         shell: bash
         run: |
           set -euo pipefail
-          echo "Running CustomizationSelect for: profiles"
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" profiles
+          echo "Running CustomizationSelect for: profiles negative_insulin override_sens future_carbs_4h now_line"
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/loopandlearn/lnl-scripts/main/CustomizationSelect.sh)" \
+            profiles \
+            negative_insulin \
+            override_sens \
+            future_carbs_4h \
+            now_line
 
       - name: Patch Fastlane Match to not print tables
         shell: bash
